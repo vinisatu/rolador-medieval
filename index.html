@@ -3,6 +3,385 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rolador Medieval Arkana</title>
+
+<style>
+  :root{
+    --bg1:#3b2f2f;
+    --bg2:#111;
+    --panel: rgba(0,0,0,.6);
+    --gold:#c9a44c;
+    --paper:#f5e6c8;
+    --dark:#2b2b40;
+    --red:#8b0000;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    padding:20px;
+    font-family: Georgia, serif;
+    background: radial-gradient(circle at top, var(--bg1), var(--bg2));
+    color: var(--paper);
+    text-align:center;
+  }
+
+  h1{ margin: 0 0 16px; letter-spacing:.3px; }
+  h2{ margin: 0 0 10px; font-size: 18px; letter-spacing:.2px; }
+
+  .panel{
+    background: var(--panel);
+    border:2px solid var(--gold);
+    border-radius:12px;
+    padding:15px;
+    margin:15px auto;
+    max-width:900px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  .row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    border:1px solid rgba(201,164,76,.55);
+    border-radius:999px;
+    background: rgba(0,0,0,.25);
+    font-size:16px;
+  }
+
+  button{
+    padding:10px 12px;
+    margin:0;
+    border-radius:10px;
+    border:2px solid var(--gold);
+    cursor:pointer;
+    font-weight:bold;
+    background: linear-gradient(#3a3a46, #1f1f28);
+    color: var(--paper);
+  }
+  button:hover{ filter: brightness(1.08); }
+  button:disabled{ opacity:.45; cursor:not-allowed; filter:none; }
+
+  .btn-red{
+    background: linear-gradient(#b71c1c, #5b0f0f);
+  }
+  .btn-gold{
+    background: linear-gradient(#ffcc80, #ff9800);
+    color:#1b140e;
+    text-shadow:none;
+  }
+
+  /* Ícones */
+  .dieIcon{
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  .dieButton{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:10px 12px;
+  }
+
+  /* Display de rolagem */
+  .rollStage{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin: 8px 0 10px;
+    min-height: 92px;
+  }
+
+  .dieDisplay{
+    width: 92px;
+    height: 92px;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+  }
+
+  .roll{
+    animation: shake .45s ease-in-out;
+  }
+  @keyframes shake{
+    0%{ transform: rotate(0deg) scale(1); }
+    20%{ transform: rotate(12deg) scale(1.04); }
+    45%{ transform: rotate(-12deg) scale(1.06); }
+    70%{ transform: rotate(7deg) scale(1.04); }
+    100%{ transform: rotate(0deg) scale(1); }
+  }
+
+  .resultBox{
+    background:#222;
+    border:1px solid rgba(201,164,76,.55);
+    padding:10px;
+    border-radius:10px;
+    min-height:90px;
+    text-align:left;
+    max-width:900px;
+    margin: 10px auto 0;
+    overflow:auto;
+    max-height: 240px;
+  }
+
+  .split{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:14px;
+  }
+  @media(min-width: 900px){
+    .split{ grid-template-columns: 1fr 1fr; }
+  }
+
+  .muted{ opacity:.9; font-size: 13px; margin-top: 6px; }
+  .hr{ height:1px; background: rgba(201,164,76,.35); margin: 10px 0; }
+</style>
+</head>
+
+<body>
+
+<h1>Rolador Medieval Arkana</h1>
+
+<div class="panel">
+  <h2>Vida</h2>
+  <div class="row">
+    <button onclick="alterarVida(-1)">-</button>
+    <span class="badge">Vida atual: <strong id="vidaLabel">50</strong></span>
+    <button onclick="alterarVida(1)">+</button>
+  </div>
+</div>
+
+<div class="panel split">
+  <div>
+    <h2>Bolsa</h2>
+    <div class="row" id="bolsa"></div>
+    <div class="muted">Clique para comprar e enviar para a bandeja.</div>
+  </div>
+
+  <div>
+    <h2>Bandeja <span class="badge">Ocupação: <strong id="ocupacao">0/5</strong></span></h2>
+    <div class="row" style="margin-bottom:8px;">
+      <span class="badge">Limite: <strong id="limiteLabel">5</strong></span>
+      <button onclick="alterarEspaco(-1)">-</button>
+      <span class="badge">Bônus: <strong id="bonusLabel">0</strong></span>
+      <button onclick="alterarEspaco(1)">+</button>
+    </div>
+    <div class="row" id="bandeja"></div>
+    <div class="muted">Clique em um dado para rolar. Ele sai da bandeja e volta para a bolsa.</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Rolagem</h2>
+
+  <div class="rollStage">
+    <div id="diceDisplay"></div>
+  </div>
+
+  <div class="row">
+    <span class="badge">Soma total: <strong id="somaLabel">0</strong></span>
+    <button class="btn-red" onclick="limparResultados()">Limpar resultados</button>
+  </div>
+
+  <div class="hr"></div>
+
+  <div class="resultBox" id="resultadoBox">Nenhuma rolagem ainda.</div>
+</div>
+
+<script>
+  // ===== Estado =====
+  let vida = 50;
+  let limiteBase = 5;
+  let bonus = 0;
+
+  let soma = 0;
+  let history = [];
+
+  const bolsa = { d4:4, d6:3, d8:2, d10:2, d12:1, d20:1 };
+  let bandeja = [];
+
+  // ===== Helpers SVG =====
+  function polygonPoints(n, r, cx, cy, rotDeg){
+    const rot = (rotDeg * Math.PI) / 180;
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const a = rot + (i * 2*Math.PI / n);
+      const x = cx + r * Math.cos(a);
+      const y = cy + r * Math.sin(a);
+      pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+    }
+    return pts.join(" ");
+  }
+
+  // map: lados -> "forma do dado"
+  function shapeSidesForDie(sides){
+    if(sides === 4) return 3;   // d4 ~ tetra (triângulo)
+    if(sides === 6) return 4;   // d6 ~ cubo (quadrado)
+    return sides;               // d8/d10/d12/d20 ~ polígonos correspondentes
+  }
+
+  function dieSVG(sides, label, size=22){
+    const shape = shapeSidesForDie(sides);
+    const pts = polygonPoints(shape, 42, 50, 50, -90); // polígono centrado
+    const stroke = "rgba(201,164,76,.95)";
+    const fill = "rgba(0,0,0,.25)";
+    const textFill = "#f5e6c8";
+
+    return `
+      <svg class="dieIcon" width="${size}" height="${size}" viewBox="0 0 100 100" aria-label="d${sides}">
+        <polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="4" />
+        <text x="50" y="57" text-anchor="middle" font-size="32" font-family="Georgia, serif" fill="${textFill}" style="font-weight:700;">
+          ${label}
+        </text>
+      </svg>
+    `;
+  }
+
+  function dieDisplaySVG(sides, label){
+    const shape = shapeSidesForDie(sides);
+    const pts = polygonPoints(shape, 44, 50, 50, -90);
+    const stroke = "rgba(201,164,76,.95)";
+    const fill = "rgba(0,0,0,.18)";
+    const textFill = "#f5e6c8";
+
+    return `
+      <svg class="dieDisplay" viewBox="0 0 100 100">
+        <polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="4"/>
+        <text x="50" y="61" text-anchor="middle" font-size="40" font-family="Georgia, serif" fill="${textFill}" style="font-weight:800;">
+          ${label}
+        </text>
+      </svg>
+    `;
+  }
+
+  function limiteAtual(){ return limiteBase + bonus; }
+
+  // ===== Render =====
+  function render(){
+    document.getElementById("vidaLabel").innerText = vida;
+    document.getElementById("limiteLabel").innerText = limiteAtual();
+    document.getElementById("bonusLabel").innerText = bonus;
+    document.getElementById("ocupacao").innerText = `${bandeja.length}/${limiteAtual()}`;
+    document.getElementById("somaLabel").innerText = soma;
+
+    // Bolsa
+    const bolsaDiv = document.getElementById("bolsa");
+    bolsaDiv.innerHTML = "";
+    for(const tipo in bolsa){
+      const sides = parseInt(tipo.replace("d",""), 10);
+      const count = bolsa[tipo];
+
+      const btn = document.createElement("button");
+      btn.className = "dieButton";
+      btn.disabled = count <= 0 || bandeja.length >= limiteAtual();
+      btn.innerHTML = `${dieSVG(sides, "d")} <span>${tipo.toUpperCase()} (${count})</span>`;
+      btn.onclick = () => comprar(tipo);
+      bolsaDiv.appendChild(btn);
+    }
+
+    // Bandeja
+    const bandejaDiv = document.getElementById("bandeja");
+    bandejaDiv.innerHTML = "";
+    if(bandeja.length === 0){
+      const empty = document.createElement("span");
+      empty.className = "badge";
+      empty.textContent = "Bandeja vazia";
+      bandejaDiv.appendChild(empty);
+    }else{
+      bandeja.forEach((tipo, i) => {
+        const sides = parseInt(tipo.replace("d",""), 10);
+        const btn = document.createElement("button");
+        btn.className = "btn-gold dieButton";
+        btn.innerHTML = `${dieSVG(sides, "d")} <span>${tipo.toUpperCase()}</span>`;
+        btn.onclick = () => rolar(i);
+        bandejaDiv.appendChild(btn);
+      });
+    }
+
+    // Resultados
+    const box = document.getElementById("resultadoBox");
+    box.innerHTML = history.length ? history.map(x => `<div>${x}</div>`).join("") : "Nenhuma rolagem ainda.";
+  }
+
+  // ===== Ações =====
+  function alterarVida(delta){
+    vida += delta;
+    if(vida < 0) vida = 0;
+    render();
+  }
+
+  function alterarEspaco(delta){
+    bonus += delta;
+    if(bonus < 0) bonus = 0;
+    render();
+  }
+
+  function comprar(tipo){
+    if(bolsa[tipo] <= 0) return;
+    if(bandeja.length >= limiteAtual()) return;
+
+    bolsa[tipo]--;
+    bandeja.push(tipo);
+    render();
+  }
+
+  function rolar(index){
+    const tipo = bandeja[index];
+    const sides = parseInt(tipo.replace("d",""), 10);
+
+    const diceDisplay = document.getElementById("diceDisplay");
+    diceDisplay.innerHTML = dieDisplaySVG(sides, "?");
+    const svg = diceDisplay.querySelector("svg");
+    svg.classList.add("roll");
+
+    setTimeout(() => {
+      const valor = Math.floor(Math.random()*sides) + 1;
+
+      // atualiza display com o ícone do dado + valor
+      diceDisplay.innerHTML = dieDisplaySVG(sides, String(valor));
+
+      // soma e histórico
+      soma += valor;
+      history.push(`${tipo.toUpperCase()}: ${valor}`);
+
+      // remove da bandeja e devolve à bolsa
+      bandeja.splice(index, 1);
+      bolsa[tipo]++;
+
+      render();
+    }, 320);
+  }
+
+  function limparResultados(){
+    soma = 0;
+    history = [];
+    document.getElementById("diceDisplay").innerHTML = dieDisplaySVG(6, "d"); // padrão visual
+    render();
+  }
+
+  // init
+  document.getElementById("diceDisplay").innerHTML = dieDisplaySVG(6, "d");
+  render();
+</script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Rolador Medieval - Bolsa & Bandeja</title>
 
 <style>
