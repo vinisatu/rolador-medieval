@@ -9,11 +9,15 @@
   :root{
     --bg1:#3b2f2f;
     --bg2:#111;
-    --panel: rgba(0,0,0,.6);
+    --panel: rgba(0,0,0,.60);
     --gold:#c9a44c;
     --paper:#f5e6c8;
     --dark:#2b2b40;
     --red:#8b0000;
+
+    /* Elementos (fallbacks) */
+    --elem-accent: #c9a44c;
+    --elem-tint: rgba(201,164,76,.16);
   }
 
   *{box-sizing:border-box}
@@ -36,7 +40,7 @@
     border-radius:12px;
     padding:15px;
     margin:15px auto;
-    max-width:900px;
+    max-width:980px;
     box-shadow: 0 10px 30px rgba(0,0,0,.35);
   }
 
@@ -61,7 +65,6 @@
 
   button{
     padding:10px 12px;
-    margin:0;
     border-radius:10px;
     border:2px solid var(--gold);
     cursor:pointer;
@@ -81,18 +84,65 @@
     text-shadow:none;
   }
 
+  /* Dropdown */
+  select{
+    padding:10px 12px;
+    border-radius:10px;
+    border:2px solid var(--gold);
+    background: rgba(0,0,0,.25);
+    color: var(--paper);
+    font-weight: bold;
+    outline: none;
+  }
+  option{ color:#111; } /* iOS/Chrome ajudam com legibilidade */
+
+  /* Área Bolsa/Bandeja lado a lado */
+  .twoColsWrap{
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  .elementBar{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom: 12px;
+  }
+
+  .twoCols{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:14px;
+  }
+  @media(min-width: 900px){
+    .twoCols{ grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Painéis com tint do elemento */
+  .elementPanel{
+    background:
+      linear-gradient(0deg, var(--elem-tint), var(--elem-tint)),
+      var(--panel);
+    border-color: var(--elem-accent);
+  }
+  .elementPanel .badge,
+  .elementPanel button,
+  .elementPanel select{
+    border-color: var(--elem-accent);
+  }
+
   /* Ícones */
   .dieIcon{
     width: 22px;
     height: 22px;
     vertical-align: middle;
-    margin-right: 8px;
   }
-
   .dieButton{
     display:inline-flex;
     align-items:center;
-    gap:6px;
+    gap:8px;
     padding:10px 12px;
   }
 
@@ -129,19 +179,8 @@
     border-radius:10px;
     min-height:90px;
     text-align:left;
-    max-width:900px;
-    margin: 10px auto 0;
     overflow:auto;
     max-height: 240px;
-  }
-
-  .split{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap:14px;
-  }
-  @media(min-width: 900px){
-    .split{ grid-template-columns: 1fr 1fr; }
   }
 
   .muted{ opacity:.9; font-size: 13px; margin-top: 6px; }
@@ -162,23 +201,43 @@
   </div>
 </div>
 
-<div class="panel split">
-  <div>
-    <h2>Bolsa</h2>
-    <div class="row" id="bolsa"></div>
-    <div class="muted">Clique para comprar e enviar para a bandeja.</div>
+<div class="twoColsWrap">
+  <!-- Dropdown acima dos dois quadros -->
+  <div class="elementBar">
+    <span class="badge">Elemento</span>
+    <select id="elementSelect" onchange="setElemento(this.value)">
+      <option value="fogo">Fogo</option>
+      <option value="luz">Luz</option>
+      <option value="natureza">Natureza</option>
+      <option value="agua">Água</option>
+      <option value="morte">Morte</option>
+      <option value="caos">Caos</option>
+    </select>
+    <span class="badge">Aplicado à Bolsa e Bandeja</span>
   </div>
 
-  <div>
-    <h2>Bandeja <span class="badge">Ocupação: <strong id="ocupacao">0/5</strong></span></h2>
-    <div class="row" style="margin-bottom:8px;">
-      <span class="badge">Limite: <strong id="limiteLabel">5</strong></span>
-      <button onclick="alterarEspaco(-1)">-</button>
-      <span class="badge">Bônus: <strong id="bonusLabel">0</strong></span>
-      <button onclick="alterarEspaco(1)">+</button>
+  <div class="twoCols">
+    <!-- Bolsa (esquerda) -->
+    <div class="panel elementPanel" id="bolsaPanel">
+      <h2>Bolsa</h2>
+      <div class="row" id="bolsa"></div>
+      <div class="muted">Clique para comprar e enviar para a bandeja.</div>
     </div>
-    <div class="row" id="bandeja"></div>
-    <div class="muted">Clique em um dado para rolar. Ele sai da bandeja e volta para a bolsa.</div>
+
+    <!-- Bandeja (direita) -->
+    <div class="panel elementPanel" id="bandejaPanel">
+      <h2>Bandeja <span class="badge">Ocupação: <strong id="ocupacao">0/5</strong></span></h2>
+
+      <div class="row" style="margin-bottom:8px;">
+        <span class="badge">Limite: <strong id="limiteLabel">5</strong></span>
+        <button onclick="alterarEspaco(-1)">-</button>
+        <span class="badge">Bônus: <strong id="bonusLabel">0</strong></span>
+        <button onclick="alterarEspaco(1)">+</button>
+      </div>
+
+      <div class="row" id="bandeja"></div>
+      <div class="muted">Clique em um dado para rolar. Ele sai da bandeja e volta para a bolsa.</div>
+    </div>
   </div>
 </div>
 
@@ -211,6 +270,26 @@
   const bolsa = { d4:4, d6:3, d8:2, d10:2, d12:1, d20:1 };
   let bandeja = [];
 
+  // Elemento selecionado
+  const ELEMENTOS = {
+    fogo:     { label: "Fogo",     accent: "#c62828", tint: "rgba(198,40,40,.18)" },
+    luz:      { label: "Luz",      accent: "#f9a825", tint: "rgba(249,168,37,.18)" },
+    natureza: { label: "Natureza", accent: "#2e7d32", tint: "rgba(46,125,50,.18)" },
+    agua:     { label: "Água",     accent: "#1565c0", tint: "rgba(21,101,192,.18)" },
+    morte:    { label: "Morte",    accent: "#111111", tint: "rgba(0,0,0,.28)" },
+    caos:     { label: "Caos",     accent: "#6a1b9a", tint: "rgba(106,27,154,.18)" },
+  };
+  let elementoAtual = "fogo";
+
+  function setElemento(key){
+    if(!ELEMENTOS[key]) return;
+    elementoAtual = key;
+    const e = ELEMENTOS[key];
+    document.documentElement.style.setProperty("--elem-accent", e.accent);
+    document.documentElement.style.setProperty("--elem-tint", e.tint);
+    render();
+  }
+
   // ===== Helpers SVG =====
   function polygonPoints(n, r, cx, cy, rotDeg){
     const rot = (rotDeg * Math.PI) / 180;
@@ -224,22 +303,22 @@
     return pts.join(" ");
   }
 
-  // map: lados -> "forma do dado"
   function shapeSidesForDie(sides){
-    if(sides === 4) return 3;   // d4 ~ tetra (triângulo)
-    if(sides === 6) return 4;   // d6 ~ cubo (quadrado)
-    return sides;               // d8/d10/d12/d20 ~ polígonos correspondentes
+    if(sides === 4) return 3;   // d4 ~ triângulo
+    if(sides === 6) return 4;   // d6 ~ quadrado
+    return sides;               // d8/d10/d12/d20
   }
 
-  function dieSVG(sides, label, size=22){
+  function dieSVG(sides, label){
     const shape = shapeSidesForDie(sides);
-    const pts = polygonPoints(shape, 42, 50, 50, -90); // polígono centrado
-    const stroke = "rgba(201,164,76,.95)";
+    const pts = polygonPoints(shape, 42, 50, 50, -90);
+
+    const stroke = getComputedStyle(document.documentElement).getPropertyValue("--elem-accent").trim() || "rgba(201,164,76,.95)";
     const fill = "rgba(0,0,0,.25)";
     const textFill = "#f5e6c8";
 
     return `
-      <svg class="dieIcon" width="${size}" height="${size}" viewBox="0 0 100 100" aria-label="d${sides}">
+      <svg class="dieIcon" viewBox="0 0 100 100" aria-label="d${sides}">
         <polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="4" />
         <text x="50" y="57" text-anchor="middle" font-size="32" font-family="Georgia, serif" fill="${textFill}" style="font-weight:700;">
           ${label}
@@ -251,7 +330,8 @@
   function dieDisplaySVG(sides, label){
     const shape = shapeSidesForDie(sides);
     const pts = polygonPoints(shape, 44, 50, 50, -90);
-    const stroke = "rgba(201,164,76,.95)";
+
+    const stroke = getComputedStyle(document.documentElement).getPropertyValue("--elem-accent").trim() || "rgba(201,164,76,.95)";
     const fill = "rgba(0,0,0,.18)";
     const textFill = "#f5e6c8";
 
@@ -330,7 +410,6 @@
   function comprar(tipo){
     if(bolsa[tipo] <= 0) return;
     if(bandeja.length >= limiteAtual()) return;
-
     bolsa[tipo]--;
     bandeja.push(tipo);
     render();
@@ -347,15 +426,11 @@
 
     setTimeout(() => {
       const valor = Math.floor(Math.random()*sides) + 1;
-
-      // atualiza display com o ícone do dado + valor
       diceDisplay.innerHTML = dieDisplaySVG(sides, String(valor));
 
-      // soma e histórico
       soma += valor;
       history.push(`${tipo.toUpperCase()}: ${valor}`);
 
-      // remove da bandeja e devolve à bolsa
       bandeja.splice(index, 1);
       bolsa[tipo]++;
 
@@ -366,11 +441,13 @@
   function limparResultados(){
     soma = 0;
     history = [];
-    document.getElementById("diceDisplay").innerHTML = dieDisplaySVG(6, "d"); // padrão visual
+    document.getElementById("diceDisplay").innerHTML = dieDisplaySVG(6, "d");
     render();
   }
 
   // init
+  document.getElementById("elementSelect").value = elementoAtual;
+  setElemento(elementoAtual);
   document.getElementById("diceDisplay").innerHTML = dieDisplaySVG(6, "d");
   render();
 </script>
