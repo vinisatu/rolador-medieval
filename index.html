@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rolador Medieval - Bolsa & Bandeja</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
+
+:root{
+  --bg1:#3b2f2f;
+  --bg2:#12100e;
+  --panel: rgba(0,0,0,.55);
+  --gold:#c9a44c;
+  --paper:#f5e6c8;
+  --iron:#2b2b40;
+  --ember:#ffb74d;
+  --blood:#8b0000;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:18px;
+  font-family:'MedievalSharp', cursive;
+  background: radial-gradient(circle at top, var(--bg1), var(--bg2));
+  color: var(--paper);
+  text-align:center;
+}
+
+h1{
+  margin: 6px 0 14px;
+  font-size: 30px;
+  text-shadow: 2px 2px 4px #000;
+}
+
+.wrap{
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media(min-width: 820px){
+  .grid{
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .span2{grid-column: 1 / -1;}
+}
+
+.panel{
+  background: var(--panel);
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+
+.panel h2{
+  margin: 0 0 10px;
+  font-size: 20px;
+  letter-spacing: .4px;
+}
+
+.row{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.badge{
+  display:inline-flex;
+  gap:8px;
+  align-items:baseline;
+  padding: 6px 10px;
+  border: 1px solid rgba(201,164,76,.55);
+  border-radius: 999px;
+  background: rgba(0,0,0,.25);
+}
+
+.big{
+  font-size: 24px;
+}
+
+.small{
+  opacity:.9;
+  font-size: 14px;
+}
+
+.btn{
+  margin: 6px 4px;
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid var(--gold);
+  color: var(--paper);
+  background: linear-gradient(#6b4f2a, #3e2d17);
+  text-shadow: 1px 1px 1px #000;
+}
+
+.btn:hover{filter: brightness(1.08);}
+.btn:active{transform: translateY(1px);}
+
+.btn-iron{
+  background: linear-gradient(#3a3a46, #1f1f28);
+}
+
+.btn-blood{
+  background: linear-gradient(#b71c1c, #5b0f0f);
+}
+
+.btn-ember{
+  background: linear-gradient(#ffcc80, #ff9800);
+  color:#1b140e;
+  text-shadow:none;
+}
+
+.btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  filter:none;
+}
+
+.diceArea{
+  margin: 6px auto 0;
+  font-size: 56px;
+  height: 70px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  user-select:none;
+}
+
+.roll-animation{
+  animation: shake .55s ease-in-out;
+}
+
+@keyframes shake {
+  0% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(12deg) scale(1.02); }
+  45% { transform: rotate(-12deg) scale(1.04); }
+  70% { transform: rotate(7deg) scale(1.02); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.list{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.note{
+  opacity:.9;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.resultBox{
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(201,164,76,.55);
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 90px;
+  text-align:left;
+  max-height: 220px;
+  overflow:auto;
+}
+
+.resultBox .empty{
+  opacity:.85;
+}
+
+.hr{
+  height:1px;
+  background: rgba(201,164,76,.35);
+  margin: 10px 0;
+}
+
+.toast{
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: .92;
+  min-height: 18px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>🏰🎲 Bolsa & Bandeja — Rolador Medieval</h1>
+
+  <div class="grid">
+
+    <div class="panel span2">
+      <h2>🧙‍♂️ Vida do Herói</h2>
+      <div class="row">
+        <span class="badge"><span class="small">Vida inicial</span> <span class="big" id="vidaInicialLabel">50</span></span>
+        <button class="btn btn-iron" onclick="setVidaInicialPrompt()">Definir Vida Inicial</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn btn-iron" onclick="alterarVida(-1)">-</button>
+        <span class="badge"><span class="small">Vida atual</span> <span class="big" id="vidaLabel">50</span></span>
+        <button class="btn btn-iron" onclick="alterarVida(1)">+</button>
+      </div>
+      <div class="note">A vida pode ultrapassar a inicial. Não desce abaixo de 0.</div>
+    </div>
+
+    <div class="panel">
+      <h2>🎒 Bolsa de Dados</h2>
+      <div class="row" style="margin-bottom:6px;">
+        <span class="badge"><span class="small">Disponíveis</span> <span class="big" id="bolsaTotal">0</span></span>
+      </div>
+      <div id="bolsa" class="list"></div>
+      <div class="note">Toque para comprar e enviar para a bandeja.</div>
+    </div>
+
+    <div class="panel">
+      <h2>🟦 Bandeja</h2>
+      <div class="row">
+        <span class="badge"><span class="small">Limite</span> <span class="big" id="limiteLabel">5</span></span>
+        <button class="btn btn-iron" onclick="alterarEspaco(-1)">-</button>
+        <span class="badge"><span class="small">Bônus</span> <span class="big" id="bonusLabel">0</span></span>
+        <button class="btn btn-iron" onclick="alterarEspaco(1)">+</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <span class="badge"><span class="small">Ocupação</span> <span class="big" id="ocupacaoLabel">0/5</span></span>
+      </div>
+      <div id="bandeja" class="list" style="margin-top:6px;"></div>
+      <div class="note">Toque em um dado para rolar: ele some da bandeja e volta para a bolsa.</div>
+    </div>
+
+    <div class="panel span2">
+      <h2>🎲 Rolagem</h2>
+      <div class="diceArea" id="diceDisplay">⚀</div>
+
+      <div class="row">
+        <span class="badge"><span class="small">Soma total</span> <span class="big" id="somaLabel">0</span></span>
+        <button class="btn btn-blood" onclick="limparResultados()">🧹 Limpar Resultados</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="resultBox" id="resultadoBox">
+        <div class="empty">Nenhuma rolagem ainda.</div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== Estado =====
+let vidaInicial = 50;
+let vidaAtual = 50;
+
+let limiteBase = 5;
+let bonusEspaco = 0;
+
+let somaTotal = 0;
+let historyList = [];
+
+// Bolsa inicial conforme especificação
+let bolsa = {
+  d4: 4,
+  d6: 3,
+  d8: 2,
+  d10: 2,
+  d12: 1,
+  d20: 1
+};
+
+let bandeja = [];
+
+// ===== Util =====
+function ladosFromTipo(tipo){
+  return parseInt(tipo.replace("d",""), 10);
+}
+
+function totalBolsa(){
+  let t = 0;
+  for(const k in bolsa) t += bolsa[k];
+  return t;
+}
+
+function limiteAtual(){
+  return limiteBase + bonusEspaco;
+}
+
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg || "";
+  if(msg){
+    setTimeout(()=>{ if(el.textContent === msg) el.textContent=""; }, 1600);
+  }
+}
+
+// ===== UI =====
+function atualizarTela(){
+  document.getElementById("vidaInicialLabel").innerText = vidaInicial;
+  document.getElementById("vidaLabel").innerText = vidaAtual;
+
+  document.getElementById("limiteLabel").innerText = limiteAtual();
+  document.getElementById("bonusLabel").innerText = bonusEspaco;
+  document.getElementById("ocupacaoLabel").innerText = bandeja.length + "/" + limiteAtual();
+
+  document.getElementById("somaLabel").innerText = somaTotal;
+  document.getElementById("bolsaTotal").innerText = totalBolsa();
+
+  // Bolsa
+  const bolsaDiv = document.getElementById("bolsa");
+  bolsaDiv.innerHTML = "";
+  for(const tipo in bolsa){
+    const count = bolsa[tipo];
+    const btn = document.createElement("button");
+    btn.className = "btn btn-iron";
+    btn.textContent = tipo.toUpperCase() + " (" + count + ")";
+    btn.disabled = (count <= 0) || (bandeja.length >= limiteAtual());
+    btn.onclick = () => comprarDado(tipo);
+    bolsaDiv.appendChild(btn);
+  }
+
+  // Bandeja
+  const bandejaDiv = document.getElementById("bandeja");
+  bandejaDiv.innerHTML = "";
+  if(bandeja.length === 0){
+    const span = document.createElement("span");
+    span.className = "badge";
+    span.innerHTML = '<span class="small">vazia</span>';
+    bandejaDiv.appendChild(span);
+  }else{
+    bandeja.forEach((tipo, index) => {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-ember";
+      btn.textContent = tipo.toUpperCase();
+      btn.onclick = () => rolarDado(index);
+      bandejaDiv.appendChild(btn);
+    });
+  }
+
+  // Resultados
+  const box = document.getElementById("resultadoBox");
+  if(historyList.length === 0){
+    box.innerHTML = '<div class="empty">Nenhuma rolagem ainda.</div>';
+  }else{
+    box.innerHTML = historyList.map(x => `<div>${x}</div>`).join("");
+  }
+}
+
+// ===== Ações =====
+function setVidaInicialPrompt(){
+  const raw = prompt("Defina a vida inicial do herói (ex: 50):", String(vidaInicial));
+  if(raw === null) return;
+  const n = parseInt(raw, 10);
+  if(Number.isNaN(n) || n < 0){
+    toast("Valor inválido.");
+    return;
+  }
+  vidaInicial = n;
+  // Regra: ao definir no começo do jogo, normalmente vidaAtual = vidaInicial
+  vidaAtual = n;
+  toast("Vida inicial definida: " + n);
+  atualizarTela();
+}
+
+function alterarVida(delta){
+  vidaAtual += delta;
+  if(vidaAtual < 0) vidaAtual = 0;
+  atualizarTela();
+}
+
+function alterarEspaco(delta){
+  bonusEspaco += delta;
+  if(bonusEspaco < 0) bonusEspaco = 0;
+  // Se bandeja > limiteAtual após redução, não remove automaticamente (só bloqueia compra)
+  atualizarTela();
+}
+
+function comprarDado(tipo){
+  if(bolsa[tipo] <= 0){
+    toast("Sem " + tipo.toUpperCase() + " na bolsa.");
+    return;
+  }
+  if(bandeja.length >= limiteAtual()){
+    toast("Bandeja cheia.");
+    return;
+  }
+  bolsa[tipo]--;
+  bandeja.push(tipo);
+  atualizarTela();
+}
+
+function rolarDado(index){
+  const tipo = bandeja[index];
+  const lados = ladosFromTipo(tipo);
+
+  const diceDisplay = document.getElementById("diceDisplay");
+  diceDisplay.classList.add("roll-animation");
+  diceDisplay.textContent = "⚄";
+
+  setTimeout(() => {
+    const valor = Math.floor(Math.random() * lados) + 1;
+
+    // Mostra no display e registra
+    diceDisplay.textContent = String(valor);
+    somaTotal += valor;
+    historyList.push(tipo.toUpperCase() + ": " + valor);
+
+    // Remove da bandeja e volta para a bolsa
+    bandeja.splice(index, 1);
+    bolsa[tipo]++;
+
+    diceDisplay.classList.remove("roll-animation");
+    atualizarTela();
+  }, 320);
+}
+
+function limparResultados(){
+  somaTotal = 0;
+  historyList = [];
+  document.getElementById("diceDisplay").textContent = "⚀";
+  toast("Resultados limpos.");
+  atualizarTela();
+}
+
+// init
+atualizarTela();
+</script>
+
+</body>
+</html>
